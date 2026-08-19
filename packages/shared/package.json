@@ -1,0 +1,7 @@
+{
+  "name": "@marketplace/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Foundation for types/config shared between frontend apps. Populated in later phases (e.g. OpenAPI-generated API types).",
+  "types": "index.ts"
+}
