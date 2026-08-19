@@ -1,10 +1,10 @@
 # Development Phases
 
-**Hozirgi faza: Phase 1 — Repository & Infrastructure**
+**Hozirgi faza: Phase 2 — Database Schema & Migrations**
 
 - Phase 0 — Architecture ✅
-- **Phase 1 — Repository & Infrastructure** ⬅ hozir shu yerdamiz
-- Phase 2 — Database (business schema, migrations)
+- Phase 1 — Repository & Infrastructure ✅
+- **Phase 2 — Database (business schema, migrations)** ⬅ hozir shu yerdamiz
 - Phase 3 — Authentication (Telegram initData, seller/admin auth)
 - Phase 4 — Multi-tenancy (tenant isolation, isolation testlari)
 - Phase 5 — Seller Admin (products/categories CRUD)
@@ -15,4 +15,4 @@
 - Phase 10 — Subscription (tarif tizimi asosi, to'lovsiz)
 - Phase 11 — Production hardening (RLS, rate limiting, monitoring, backup)
 
-Har bir faza tugagach test qilinadi va alohida topshiriq bilan keyingisiga o'tiladi. Hozircha faqat Phase 1 implement qilingan — authentication, business database schema, products/orders/cart/favorites/subscriptions va UI funksionalligi hali yozilmagan.
+Har bir faza tugagach test qilinadi va alohida topshiriq bilan keyingisiga o'tiladi. Phase 2 — database schema va migrationlar. Authentication, API CRUD va UI hali yozilmagan.

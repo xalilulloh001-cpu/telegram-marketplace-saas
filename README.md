@@ -73,6 +73,6 @@ docs/              Arxitektura va development-phases hujjatlari
 
 ## Current phase
 
-> Phase 1 — Repository & Infrastructure
+> Phase 2 — Database Schema & Migrations
 
 Barcha fazalar — `docs/development-phases.md`.
