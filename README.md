@@ -73,6 +73,6 @@ docs/              Arxitektura va development-phases hujjatlari
 
 ## Current phase
 
-> Phase 3 — Authentication & Identity
+> Phase 4 — Seller: Shop, Categories, Products
 
 Barcha fazalar — `docs/development-phases.md`.

@@ -1,13 +1,13 @@
 # Development Phases
 
-**Hozirgi faza: Phase 3 — Authentication & Identity**
+**Hozirgi faza: Phase 4 — Seller: Shop, Categories, Products**
 
 - Phase 0 — Architecture ✅
 - Phase 1 — Repository & Infrastructure ✅
 - Phase 2 — Database (business schema, migrations) ✅
-- **Phase 3 — Authentication (Telegram initData, seller/admin auth)** ⬅ hozir shu yerdamiz
-- Phase 4 — Multi-tenancy (tenant isolation, isolation testlari)
-- Phase 5 — Seller Admin (products/categories CRUD)
+- Phase 3 — Authentication (Telegram initData, seller/admin auth) ✅
+- Phase 4 — Multi-tenancy ✅ (Phase 3'da dependency darajasida, Phase 4'da repository darajasida)
+- **Phase 5 (rejada) — Seller Admin CRUD** — Phase 4'da bajarildi: shop, members, categories, products, images ⬅ hozir shu yerdamiz
 - Phase 6 — Customer Mini App (asosiy xarid oqimi)
 - Phase 7 — Cart & Orders (checkout, server-side narx)
 - Phase 8 — Telegram Notifications (bot worker, deep link)

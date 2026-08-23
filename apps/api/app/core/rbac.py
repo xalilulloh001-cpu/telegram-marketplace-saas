@@ -17,6 +17,7 @@ class Permission(str, Enum):
     CUSTOMER_VIEW = "customer:view"
     DISCOUNT_WRITE = "discount:write"
     SHOP_SETTINGS_WRITE = "shop:settings:write"
+    MEMBER_VIEW = "shop:member:view"
     MEMBER_MANAGE = "shop:member:manage"
     SUBSCRIPTION_MANAGE = "shop:subscription:manage"
 
@@ -33,7 +34,7 @@ _MANAGER: frozenset[Permission] = frozenset(
 )
 
 _ADMIN: frozenset[Permission] = _MANAGER | frozenset(
-    {Permission.DISCOUNT_WRITE, Permission.SHOP_SETTINGS_WRITE}
+    {Permission.DISCOUNT_WRITE, Permission.SHOP_SETTINGS_WRITE, Permission.MEMBER_VIEW}
 )
 
 _OWNER: frozenset[Permission] = _ADMIN | frozenset(

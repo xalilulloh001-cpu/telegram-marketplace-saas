@@ -49,6 +49,10 @@ class Shop(Base, TimestampMixin):
     order_prefix: Mapped[str] = mapped_column(String(8), nullable=False)
     logo_url: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)
+    contact_phone: Mapped[str | None] = mapped_column(String(32))
+    contact_email: Mapped[str | None] = mapped_column(String(255))
+    address_line: Mapped[str | None] = mapped_column(Text)
+    city: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[ShopStatus] = mapped_column(
         Enum(ShopStatus, name="shop_status"), default=ShopStatus.TRIAL, nullable=False
     )

@@ -30,6 +30,8 @@ class Category(Base, TimestampMixin):
     )
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(128), nullable=False)
+    slug: Mapped[str] = mapped_column(String(160), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     shop: Mapped["Shop"] = relationship(back_populates="categories")
@@ -38,7 +40,9 @@ class Category(Base, TimestampMixin):
 
     __table_args__ = (
         Index("ix_categories_shop_parent", "shop_id", "parent_id"),
+        Index("ix_categories_shop_id", "shop_id"),
         UniqueConstraint("shop_id", "parent_id", "name", name="uq_categories_shop_parent_name"),
+        UniqueConstraint("shop_id", "slug", name="uq_categories_shop_slug"),
     )
 
 
@@ -53,6 +57,7 @@ class Product(Base, TimestampMixin):
         ForeignKey("categories.id", ondelete="SET NULL")
     )
     name: Mapped[str] = mapped_column(String(256), nullable=False)
+    slug: Mapped[str] = mapped_column(String(300), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     discount_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
@@ -72,8 +77,10 @@ class Product(Base, TimestampMixin):
             name="ck_products_discount_valid",
         ),
         CheckConstraint("stock >= 0", name="ck_products_stock_non_negative"),
+        UniqueConstraint("shop_id", "slug", name="uq_products_shop_slug"),
         Index("ix_products_shop_category", "shop_id", "category_id"),
         Index("ix_products_shop_active", "shop_id", "is_active"),
+        Index("ix_products_shop_id", "shop_id"),
     )
 
 

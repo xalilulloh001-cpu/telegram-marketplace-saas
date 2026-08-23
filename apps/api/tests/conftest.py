@@ -52,3 +52,28 @@ async def client(db_engine) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def seller_factory(client, db):
+    """Creates a shop with an owner and returns an authenticated client context."""
+    from app.models.enums import ShopMemberRole
+    from app.models.identity import User
+    from app.models.tenancy import Shop, ShopMember
+    from tests.test_telegram_auth import build_init_data
+
+    async def make(slug: str, telegram_id: int, role: ShopMemberRole = ShopMemberRole.OWNER):
+        user = User(telegram_id=telegram_id)
+        shop = Shop(name=slug.title(), slug=slug, order_prefix=slug[0].upper())
+        db.add_all([user, shop])
+        await db.commit()
+        db.add(ShopMember(shop_id=shop.id, user_id=user.id, role=role))
+        await db.commit()
+        login = await client.post(
+            "/api/v1/auth/telegram/seller",
+            json={"init_data": build_init_data(telegram_id=telegram_id)},
+        )
+        assert login.status_code == 200, login.text
+        return {"shop": shop, "user": user, "cookies": dict(login.cookies)}
+
+    return make
