@@ -1,8 +1,20 @@
-export default function Home() {
+"use client";
+
+import { useSeller } from "@/components/AuthGuard";
+
+export default function Dashboard() {
+  const { shop, permissions, logout } = useSeller();
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-2 p-8">
-      <h1 className="text-2xl font-semibold">Marketplace — Seller Admin</h1>
-      <p className="text-sm text-gray-500">Phase 1 — foundation. API: {process.env.NEXT_PUBLIC_API_BASE_URL ?? "not set"}</p>
+    <main className="mx-auto max-w-3xl p-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{shop?.name ?? "Do'kon"}</h1>
+        <button onClick={logout} className="rounded border px-3 py-1 text-sm">
+          Chiqish
+        </button>
+      </div>
+      <p className="text-sm text-gray-500">Rol: {shop?.role}</p>
+      <p className="mt-2 text-sm text-gray-500">Ruxsatlar: {permissions.length}</p>
     </main>
   );
 }

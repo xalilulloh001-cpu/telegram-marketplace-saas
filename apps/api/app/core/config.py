@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     r2_bucket_name: str | None = None
     r2_public_base_url: str | None = None
 
+    session_ttl_seconds: int = 60 * 60 * 12
+    telegram_auth_max_age_seconds: int = 300
+    cookie_secure: bool = True
+    cookie_domain: str | None = None
+    admin_max_failed_logins: int = 5
+    admin_lockout_seconds: int = 900
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

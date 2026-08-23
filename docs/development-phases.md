@@ -1,11 +1,11 @@
 # Development Phases
 
-**Hozirgi faza: Phase 2 — Database Schema & Migrations**
+**Hozirgi faza: Phase 3 — Authentication & Identity**
 
 - Phase 0 — Architecture ✅
 - Phase 1 — Repository & Infrastructure ✅
-- **Phase 2 — Database (business schema, migrations)** ⬅ hozir shu yerdamiz
-- Phase 3 — Authentication (Telegram initData, seller/admin auth)
+- Phase 2 — Database (business schema, migrations) ✅
+- **Phase 3 — Authentication (Telegram initData, seller/admin auth)** ⬅ hozir shu yerdamiz
 - Phase 4 — Multi-tenancy (tenant isolation, isolation testlari)
 - Phase 5 — Seller Admin (products/categories CRUD)
 - Phase 6 — Customer Mini App (asosiy xarid oqimi)

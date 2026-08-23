@@ -10,7 +10,16 @@ class ShopStatus(str, enum.Enum):
 
 class ShopMemberRole(str, enum.Enum):
     OWNER = "owner"
+    ADMIN = "admin"
     MANAGER = "manager"
+
+
+class PrincipalType(str, enum.Enum):
+    """Which authentication realm a session belongs to. Realms never mix."""
+
+    CUSTOMER = "customer"
+    SELLER = "seller"
+    PLATFORM_ADMIN = "platform_admin"
 
 
 class OrderStatus(str, enum.Enum):

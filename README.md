@@ -73,6 +73,6 @@ docs/              Arxitektura va development-phases hujjatlari
 
 ## Current phase
 
-> Phase 2 — Database Schema & Migrations
+> Phase 3 — Authentication & Identity
 
 Barcha fazalar — `docs/development-phases.md`.
