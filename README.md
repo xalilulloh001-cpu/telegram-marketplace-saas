@@ -73,6 +73,6 @@ docs/              Arxitektura va development-phases hujjatlari
 
 ## Current phase
 
-> Phase 4 — Seller: Shop, Categories, Products
+> Phase 5 — Customer marketplace catalog
 
 Barcha fazalar — `docs/development-phases.md`.

@@ -77,3 +77,74 @@ async def seller_factory(client, db):
         return {"shop": shop, "user": user, "cookies": dict(login.cookies)}
 
     return make
+
+
+@pytest_asyncio.fixture
+async def customer_factory(client):
+    """Logs in a customer and returns bearer auth headers."""
+    from tests.test_telegram_auth import build_init_data
+
+    async def make(telegram_id: int):
+        login = await client.post(
+            "/api/v1/auth/telegram", json={"init_data": build_init_data(telegram_id=telegram_id)}
+        )
+        assert login.status_code == 200, login.text
+        token = login.json()["access_token"]
+        return {"headers": {"Authorization": f"Bearer {token}"}, "token": token}
+
+    return make
+
+
+@pytest_asyncio.fixture
+async def public_shop_factory(db):
+    """Creates a shop in a given status with an owner (no login)."""
+    from app.models.enums import ShopMemberRole, ShopStatus
+    from app.models.identity import User
+    from app.models.tenancy import Shop, ShopMember
+
+    async def make(slug: str, telegram_id: int, status: ShopStatus = ShopStatus.ACTIVE):
+        user = User(telegram_id=telegram_id)
+        shop = Shop(name=slug.title(), slug=slug, order_prefix=slug[0].upper(), status=status)
+        db.add_all([user, shop])
+        await db.commit()
+        db.add(ShopMember(shop_id=shop.id, user_id=user.id, role=ShopMemberRole.OWNER))
+        await db.commit()
+        return shop
+
+    return make
+
+
+@pytest_asyncio.fixture
+async def product_factory(db):
+    from app.models.catalog import Category, Product
+
+    async def make(shop_id: int, name: str, **kwargs):
+        product = Product(
+            shop_id=shop_id,
+            name=name,
+            slug=name.lower().replace(" ", "-"),
+            price=kwargs.pop("price", 100),
+            stock=kwargs.pop("stock", 5),
+            is_active=kwargs.pop("is_active", True),
+            **kwargs,
+        )
+        db.add(product)
+        await db.commit()
+        await db.refresh(product)
+        return product
+
+    async def make_category(shop_id: int, name: str, is_active: bool = True, parent_id=None):
+        category = Category(
+            shop_id=shop_id,
+            name=name,
+            slug=name.lower().replace(" ", "-"),
+            is_active=is_active,
+            parent_id=parent_id,
+        )
+        db.add(category)
+        await db.commit()
+        await db.refresh(category)
+        return category
+
+    make.category = make_category
+    return make
