@@ -1,6 +1,6 @@
 # Development Phases
 
-**Hozirgi faza: Phase 5 — Customer marketplace catalog**
+**Hozirgi faza: Phase 6 — Cart & Favorites**
 
 - Phase 0 — Architecture ✅
 - Phase 1 — Repository & Infrastructure ✅
@@ -8,8 +8,8 @@
 - Phase 3 — Authentication (Telegram initData, seller/admin auth) ✅
 - Phase 4 — Multi-tenancy ✅ (Phase 3'da dependency darajasida, Phase 4'da repository darajasida)
 - Phase 5 (rejada) — Seller Admin CRUD — Phase 4'da bajarildi ✅
-- **Phase 6 (rejada) — Customer Mini App** — katalog/discovery qismi Phase 5'da bajarildi ⬅ hozir shu yerdamiz
-- Phase 7 — Cart & Orders (checkout, server-side narx)
+- Phase 6 (rejada) — Customer Mini App — katalog Phase 5'da, cart/favorites Phase 6'da bajarildi ✅
+- **Phase 7 — Orders & Checkout (server-side narx, snapshot)** — cart qismi bajarildi ⬅ hozir shu yerdamiz
 - Phase 8 — Telegram Notifications (bot worker, deep link)
 - Phase 9 — Super Admin (shop boshqaruvi, statistika)
 - Phase 10 — Subscription (tarif tizimi asosi, to'lovsiz)

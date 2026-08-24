@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { formatPrice, type Product } from "@/lib/api";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
-export function ProductCard({ shopId, product }: { shopId: number; product: Product }) {
+export function ProductCard({
+  shopId,
+  product,
+  isFavorite = false,
+}: {
+  shopId: number;
+  product: Product;
+  isFavorite?: boolean;
+}) {
   const discounted = product.discount_price !== null;
 
   return (
@@ -24,6 +33,9 @@ export function ProductCard({ shopId, product }: { shopId: number; product: Prod
             Chegirma
           </span>
         )}
+        <div className="absolute right-2 top-2">
+          <FavoriteButton productId={product.id} initial={isFavorite} />
+        </div>
         {!product.in_stock && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-xs font-medium">
             Mavjud emas

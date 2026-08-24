@@ -82,3 +82,50 @@ export function formatPrice(value: string): string {
   if (Number.isNaN(number)) return value;
   return new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(number);
 }
+
+export type CartItem = {
+  item_id: number;
+  product_id: number;
+  product_name: string;
+  image_url: string | null;
+  quantity: number;
+  unit_price: string;
+  display_price: string;
+  line_total: string;
+  in_stock: boolean;
+  available: boolean;
+};
+
+export type Cart = {
+  cart_id: number | null;
+  shop_id: number;
+  items: CartItem[];
+  subtotal: string;
+  total_items: number;
+};
+
+export type Favorite = {
+  product_id: number;
+  shop_id: number;
+  product_name: string;
+  image_url: string | null;
+  price: string;
+  discount_price: string | null;
+  display_price: string;
+  in_stock: boolean;
+  is_available: boolean;
+};
+
+export async function apiSend<T>(path: string, method: string, body?: unknown): Promise<T> {
+  const res = await apiFetch(path, {
+    method,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 404) throw new NotFoundError();
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `Request failed (${res.status})`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}

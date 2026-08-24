@@ -33,7 +33,12 @@ export default function Discovery() {
 
   return (
     <main className="px-4 pb-10 pt-5">
-      <h1 className="text-[22px] font-semibold tracking-tight">Do&apos;konlar</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-[22px] font-semibold tracking-tight">Do&apos;konlar</h1>
+        <Link href="/favorites" className="text-xs text-black/50">
+          Sevimlilar
+        </Link>
+      </div>
 
       <input
         value={search}

@@ -71,9 +71,19 @@ export default function ShopPage({ params }: { params: Promise<{ shopId: string 
   return (
     <main className="pb-12">
       <header className="border-b border-black/5 px-4 pb-4 pt-5">
-        <Link href="/" className="text-xs text-black/40">
-          ← Do&apos;konlar
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-xs text-black/40">
+            ← Do&apos;konlar
+          </Link>
+          <div className="flex gap-3 text-xs">
+            <Link href="/favorites" className="text-black/50">
+              Sevimlilar
+            </Link>
+            <Link href={`/shop/${id}/cart`} className="font-medium">
+              Savat
+            </Link>
+          </div>
+        </div>
         {shop ? (
           <>
             <h1 className="mt-2 text-[20px] font-semibold tracking-tight">{shop.name}</h1>

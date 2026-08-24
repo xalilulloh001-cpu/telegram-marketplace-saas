@@ -2,7 +2,8 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { apiJson, formatPrice, NotFoundError, type ProductDetail } from "@/lib/api";
+import { apiJson, apiSend, formatPrice, NotFoundError, type Cart, type ProductDetail } from "@/lib/api";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Skeleton } from "@/components/States";
 
@@ -17,6 +18,9 @@ export default function ProductPage({
   const [activeImage, setActiveImage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (status !== "authenticated") return;
@@ -49,15 +53,34 @@ export default function ProductPage({
     return <ErrorState message={error ?? "Mahsulot topilmadi"} onRetry={load} />;
   }
 
+  const addToCart = async () => {
+    setAdding(true);
+    setAddError(null);
+    try {
+      await apiSend<Cart>(`/api/v1/customer/shops/${shopId}/cart/items`, "POST", {
+        product_id: product.id,
+        quantity: 1,
+      });
+      setAdded(true);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Savatga qo'shilmadi");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const discounted = product.discount_price !== null;
   const images = product.images.length > 0 ? product.images : null;
 
   return (
     <main className="pb-28">
       <div className="px-4 pt-5">
-        <Link href={`/shop/${shopId}`} className="text-xs text-black/40">
-          ← Do&apos;konga qaytish
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href={`/shop/${shopId}`} className="text-xs text-black/40">
+            ← Do&apos;konga qaytish
+          </Link>
+          <FavoriteButton productId={product.id} size="lg" />
+        </div>
       </div>
 
       <div className="mt-3 px-4">
@@ -125,12 +148,23 @@ export default function ProductPage({
       </section>
 
       <div className="fixed inset-x-0 bottom-0 mx-auto max-w-lg border-t border-black/5 bg-white/95 p-4 backdrop-blur">
-        <button
-          disabled
-          className="w-full cursor-not-allowed rounded-xl bg-black/10 py-3 text-sm font-medium text-black/40"
-        >
-          Savatga qo&apos;shish — tez orada
-        </button>
+        {addError && <p className="mb-2 text-center text-xs text-red-600">{addError}</p>}
+        {added ? (
+          <Link
+            href={`/shop/${shopId}/cart`}
+            className="block w-full rounded-xl bg-black py-3 text-center text-sm font-medium text-white"
+          >
+            Savatga qo&apos;shildi — savatni ochish
+          </Link>
+        ) : (
+          <button
+            onClick={addToCart}
+            disabled={!product.in_stock || adding}
+            className="w-full rounded-xl bg-black py-3 text-sm font-medium text-white disabled:bg-black/10 disabled:text-black/40"
+          >
+            {!product.in_stock ? "Mavjud emas" : adding ? "Qo'shilmoqda…" : "Savatga qo'shish"}
+          </button>
+        )}
       </div>
     </main>
   );

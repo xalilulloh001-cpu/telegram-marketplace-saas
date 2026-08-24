@@ -126,3 +126,14 @@ async def get_public_product(db: DbSession, shop_id: int, product_id: int) -> Pr
         .options(selectinload(Product.images), selectinload(Product.category))
     )
     return result.scalar_one_or_none()
+
+
+async def get_any_product(db: DbSession, product_id: int) -> Product | None:
+    """Looks a product up across shops — used by favourites, which are global to the
+    customer rather than scoped to one shop."""
+    result = await db.execute(
+        select(Product)
+        .where(Product.id == product_id)
+        .options(selectinload(Product.images))
+    )
+    return result.scalar_one_or_none()
