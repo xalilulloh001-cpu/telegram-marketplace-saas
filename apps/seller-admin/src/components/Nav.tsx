@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/categories", label: "Kategoriyalar" },
   { href: "/products", label: "Mahsulotlar" },
+  { href: "/orders", label: "Buyurtmalar" },
 ];
 
 export function Nav() {

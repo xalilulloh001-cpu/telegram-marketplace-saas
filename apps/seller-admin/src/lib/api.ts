@@ -49,3 +49,57 @@ export type Shop = {
   contact_phone: string | null;
   city: string | null;
 };
+
+export type OrderItem = {
+  id: number;
+  product_id: number | null;
+  product_name: string;
+  unit_price: string;
+  quantity: number;
+  line_total: string;
+};
+
+export type Order = {
+  id: number;
+  order_number: string;
+  status: string;
+  subtotal: string;
+  total: string;
+  total_items: number;
+  created_at: string;
+};
+
+export type SellerOrderDetail = Order & {
+  customer_id: number;
+  items: OrderItem[];
+  address_snapshot: string | null;
+  phone_snapshot: string | null;
+  customer_name_snapshot: string | null;
+  comment: string | null;
+};
+
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  pending: "Kutilmoqda",
+  confirmed: "Tasdiqlangan",
+  processing: "Tayyorlanmoqda",
+  shipped: "Yo'lda",
+  delivered: "Yetkazilgan",
+  cancelled: "Bekor qilingan",
+};
+
+// Mirrors the server-side state machine so the UI only offers legal moves; the server
+// remains the authority and rejects anything else with 409.
+export const NEXT_STATUSES: Record<string, string[]> = {
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["processing", "cancelled"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+};
+
+export function formatPrice(value: string): string {
+  const number = Number(value);
+  if (Number.isNaN(number)) return value;
+  return new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(number);
+}

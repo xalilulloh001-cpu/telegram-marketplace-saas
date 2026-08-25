@@ -148,12 +148,12 @@ export default function CartPage({ params }: { params: Promise<{ shopId: string 
             <span className="text-xs text-black/50">{cart?.total_items} ta mahsulot</span>
             <span className="text-lg font-semibold">{formatPrice(cart?.subtotal ?? "0")}</span>
           </div>
-          <button
-            disabled
-            className="w-full cursor-not-allowed rounded-xl bg-black/10 py-3 text-sm font-medium text-black/40"
+          <Link
+            href={`/shop/${shopId}/checkout`}
+            className="block w-full rounded-xl bg-black py-3 text-center text-sm font-medium text-white"
           >
-            Checkout — tez orada
-          </button>
+            Buyurtma berish
+          </Link>
         </div>
       )}
     </main>

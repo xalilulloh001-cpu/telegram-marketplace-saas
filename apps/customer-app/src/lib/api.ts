@@ -129,3 +129,76 @@ export async function apiSend<T>(path: string, method: string, body?: unknown): 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
+
+export type OrderItem = {
+  id: number;
+  product_id: number | null;
+  product_name: string;
+  list_price: string | null;
+  unit_price: string;
+  quantity: number;
+  line_total: string;
+};
+
+export type Order = {
+  id: number;
+  order_number: string;
+  shop_id: number;
+  shop_name: string | null;
+  status: string;
+  subtotal: string;
+  total: string;
+  total_items: number;
+  created_at: string;
+};
+
+export type OrderDetail = Order & {
+  items: OrderItem[];
+  address_snapshot: string | null;
+  phone_snapshot: string | null;
+  customer_name_snapshot: string | null;
+  comment: string | null;
+};
+
+export type CheckoutConflict = {
+  message: string;
+  items: {
+    product_id: number;
+    product_name: string;
+    reason: string;
+    available_stock: number | null;
+  }[];
+};
+
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  pending: "Kutilmoqda",
+  confirmed: "Tasdiqlangan",
+  processing: "Tayyorlanmoqda",
+  shipped: "Yo'lda",
+  delivered: "Yetkazilgan",
+  cancelled: "Bekor qilingan",
+};
+
+export class ConflictError extends Error {
+  detail: CheckoutConflict | string;
+  constructor(detail: CheckoutConflict | string) {
+    super(typeof detail === "string" ? detail : detail.message);
+    this.name = "ConflictError";
+    this.detail = detail;
+  }
+}
+
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const res = await apiFetch(path, {
+    method: "POST",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 404) throw new NotFoundError();
+  if (res.status === 409) {
+    const payload = await res.json().catch(() => null);
+    throw new ConflictError(payload?.detail ?? "Amal bajarilmadi");
+  }
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}

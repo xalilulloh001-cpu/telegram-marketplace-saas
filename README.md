@@ -73,6 +73,6 @@ docs/              Arxitektura va development-phases hujjatlari
 
 ## Current phase
 
-> Phase 6 — Cart & Favorites
+> Phase 7 — Checkout & Orders
 
 Barcha fazalar — `docs/development-phases.md`.
