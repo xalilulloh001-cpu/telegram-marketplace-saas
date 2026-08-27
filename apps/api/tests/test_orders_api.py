@@ -109,7 +109,7 @@ async def test_customer_cannot_cancel_confirmed_order(
     await client.patch(
         f"/api/v1/seller/orders/{order['id']}/status",
         json={"status": "confirmed"},
-        cookies=shop_ctx["cookies"],
+        cookies=shop_ctx["cookies"], headers=shop_ctx["headers"],
     )
     response = await client.post(
         f"/api/v1/customer/orders/{order['id']}/cancel", headers=ctx["headers"]
@@ -136,7 +136,10 @@ async def test_seller_sees_only_own_shop_orders(
     order_a = await _place_order(client, customer, ctx_a["shop"].id, pa.id)
     await _place_order(client, customer, ctx_b["shop"].id, pb.id)
 
-    listing = (await client.get("/api/v1/seller/orders", cookies=ctx_a["cookies"])).json()
+    listing = (await client.get("/api/v1/seller/orders", 
+        cookies=ctx_a["cookies"],
+        headers=ctx_a["headers"],
+    )).json()
     assert listing["total"] == 1
     assert listing["items"][0]["id"] == order_a["id"]
 
@@ -156,12 +159,12 @@ async def test_seller_cannot_read_other_shop_order(
     order_b = await _place_order(client, customer, ctx_b["shop"].id, pb.id)
 
     read = await client.get(
-        f"/api/v1/seller/orders/{order_b['id']}", cookies=ctx_a["cookies"]
+        f"/api/v1/seller/orders/{order_b['id']}", cookies=ctx_a["cookies"], headers=ctx_a["headers"]
     )
     patched = await client.patch(
         f"/api/v1/seller/orders/{order_b['id']}/status",
         json={"status": "confirmed"},
-        cookies=ctx_a["cookies"],
+        cookies=ctx_a["cookies"], headers=ctx_a["headers"],
     )
     assert read.status_code == 404
     assert patched.status_code == 404
@@ -183,10 +186,13 @@ async def test_seller_status_filter(
     await client.patch(
         f"/api/v1/seller/orders/{first['id']}/status",
         json={"status": "confirmed"},
-        cookies=ctx["cookies"],
+        cookies=ctx["cookies"], headers=ctx["headers"],
     )
     confirmed = (
-        await client.get("/api/v1/seller/orders?status=confirmed", cookies=ctx["cookies"])
+        await client.get("/api/v1/seller/orders?status=confirmed", 
+            cookies=ctx["cookies"],
+            headers=ctx["headers"],
+        )
     ).json()
     assert confirmed["total"] == 1
 
@@ -209,7 +215,7 @@ async def test_valid_status_progression(
         response = await client.patch(
             f"/api/v1/seller/orders/{order['id']}/status",
             json={"status": target},
-            cookies=ctx["cookies"],
+            cookies=ctx["cookies"], headers=ctx["headers"],
         )
         assert response.status_code == 200, target
         assert response.json()["status"] == target
@@ -231,7 +237,7 @@ async def test_invalid_transitions_rejected(
     skipped = await client.patch(
         f"/api/v1/seller/orders/{order['id']}/status",
         json={"status": "delivered"},
-        cookies=ctx["cookies"],
+        cookies=ctx["cookies"], headers=ctx["headers"],
     )
     assert skipped.status_code == 409
 
@@ -239,14 +245,14 @@ async def test_invalid_transitions_rejected(
         await client.patch(
             f"/api/v1/seller/orders/{order['id']}/status",
             json={"status": target},
-            cookies=ctx["cookies"],
+            cookies=ctx["cookies"], headers=ctx["headers"],
         )
 
     for target in ("cancelled", "pending"):
         response = await client.patch(
             f"/api/v1/seller/orders/{order['id']}/status",
             json={"status": target},
-            cookies=ctx["cookies"],
+            cookies=ctx["cookies"], headers=ctx["headers"],
         )
         assert response.status_code == 409, target
 
@@ -266,7 +272,7 @@ async def test_unknown_status_rejected(
     response = await client.patch(
         f"/api/v1/seller/orders/{order['id']}/status",
         json={"status": "refunded"},
-        cookies=ctx["cookies"],
+        cookies=ctx["cookies"], headers=ctx["headers"],
     )
     assert response.status_code == 422
 
@@ -289,7 +295,7 @@ async def test_seller_cancellation_restores_stock(
     await client.patch(
         f"/api/v1/seller/orders/{order['id']}/status",
         json={"status": "cancelled"},
-        cookies=ctx["cookies"],
+        cookies=ctx["cookies"], headers=ctx["headers"],
     )
     await db.refresh(product)
     assert product.stock == 10
@@ -307,7 +313,7 @@ async def test_customer_cannot_use_seller_order_api(client, customer_factory) ->
 async def test_seller_cannot_use_customer_order_api(client, seller_factory) -> None:
     ctx = await seller_factory("realm1", 12020)
     assert (
-        await client.get("/api/v1/customer/orders", cookies=ctx["cookies"])
+        await client.get("/api/v1/customer/orders", cookies=ctx["cookies"], headers=ctx["headers"])
     ).status_code == 403
 
 
@@ -324,11 +330,14 @@ async def test_manager_can_view_but_permissions_are_enforced(
     customer = await customer_factory(13021)
     order = await _place_order(client, customer, ctx["shop"].id, product.id)
 
-    listing = await client.get("/api/v1/seller/orders", cookies=ctx["cookies"])
+    listing = await client.get("/api/v1/seller/orders", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     updated = await client.patch(
         f"/api/v1/seller/orders/{order['id']}/status",
         json={"status": "confirmed"},
-        cookies=ctx["cookies"],
+        cookies=ctx["cookies"], headers=ctx["headers"],
     )
     assert listing.status_code == 200
     assert updated.status_code == 200

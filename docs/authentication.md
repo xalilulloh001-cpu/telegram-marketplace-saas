@@ -71,3 +71,100 @@ Telegram realm'ida parol yo'q, shuning uchun brute-force o'rniga replay + expiry
 - **Rate limiting:** hozircha ilova darajasida (login lockout). Umumiy IP-based rate limiting
   Phase 11'da qo'shiladi; agar bir nechta instance bo'lsa, o'shanda Redis kerak bo'ladi —
   hozircha MVP uchun ortiqcha infratuzilma
+
+
+---
+
+# Phase 8.1 qo'shimchasi — cross-site cookie va CSRF
+
+## Muammo
+
+Production'da frontendlar Vercel'da, API Railway'da — bular **cross-site**. Oldingi
+`SameSite=Strict` sozlamasida brauzer bunday so'rovlarda cookie'ni **umuman yubormaydi**,
+ya'ni Seller Admin va Super Admin ishlamaydi.
+
+## Cookie sozlamasi (konfiguratsiyadan, hardcoded emas)
+
+| Muhit | `COOKIE_SAMESITE` | `COOKIE_SECURE` |
+|---|---|---|
+| Lokal | `lax` | `false` |
+| Production | `none` | `true` |
+
+Lokalda `localhost:3001` va `localhost:8000` — bir xil *site*, shuning uchun `lax` yetarli
+va `Secure` shart emas (http). `SameSite=None` esa `Secure`siz brauzer tomonidan bekor
+qilinadi, shuning uchun kod uni majburlaydi.
+
+## CSRF — double-submit, sessiyaga bog'langan
+
+`SameSite=Strict` bilvosita CSRF himoyasi bo'lgan edi. `None`ga o'tgach uni almashtirish
+kerak:
+
+```
+csrf_token = HMAC-SHA256(CSRF_SECRET, sha256(session_token))
+```
+
+Ikkita cookie o'rnatiladi:
+
+| Cookie | HttpOnly | Vazifa |
+|---|:-:|---|
+| `mp_session` / `mp_admin_session` | ✅ | Sessiya tokeni — JS o'qiy olmaydi |
+| `mp_csrf` | ❌ | JS o'qib `X-CSRF-Token` header'iga qo'yadi |
+
+### CSRF_SECRET — alohida secret
+
+`CSRF_SECRET` boshqa hech qanday secret'dan olinmaydi. Xususan **`TELEGRAM_BOT_TOKEN`
+hech qachon** CSRF signing key sifatida ishlatilmaydi:
+
+- bot token'ni almashtirish (kompromis yoki oddiy rotatsiya) barcha faol sessiyalarning
+  CSRF token'ini bekor qilib, foydalanuvchilarni tashqarida qoldirardi
+- ikki xil vazifadagi secret'ni birlashtirish bittasining sizib chiqishi ta'sirini
+  ikkinchisiga ham yoyadi
+
+`APP_ENV=production` bo'lganda `CSRF_SECRET` **majburiy**: bo'lmasa ilova
+`ValidationError` bilan ishga tushmaydi (`app/core/config.py` validator). Bu — jimgina
+zaif himoya bilan ishlashdan ko'ra yaxshiroq.
+
+Lokal va test muhitida `DEVELOPMENT_CSRF_SECRET` konstantasi ishlatiladi — u ochiq
+matnda, ataylab "secret emas" deb nomlangan va production'da hech qachon ishlatilmaydi.
+
+Yangi secret generatsiya qilish:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+**Nega token saqlanmaydi?** U sessiya tokenidan qayta hisoblanadi — DB'da ustun kerak
+emas, migration kerak emas. Va u aynan bitta sessiyaga bog'langan: boshqa sessiyaning
+token'i ishlamaydi (test bilan).
+
+**Nega bu ishlaydi?** Hujumchi sayt `mp_csrf` cookie'sini **o'qiy olmaydi** (boshqa
+origin, CORS ruxsat bermaydi), shuning uchun header'ni to'ldira olmaydi. Cookie
+avtomatik yuborilsa ham, header'siz so'rov 403 oladi.
+
+**Muhim:** faqat header hisobga olinadi. Cookie'ning o'zi hech narsani isbotlamaydi —
+u cross-site so'rovda ham avtomatik ketadi.
+
+## Qamrov
+
+| So'rov | CSRF talab qilinadi |
+|---|---|
+| `GET`/`HEAD`/`OPTIONS` | ❌ |
+| Bearer token bilan (Customer Mini App) | ❌ — header'ni cross-site qo'shib bo'lmaydi |
+| Cookie bilan `POST`/`PATCH`/`PUT`/`DELETE` | ✅ |
+| `/auth/telegram`, `/auth/telegram/seller`, `/admin/auth/login` | ❌ — sessiya hali yo'q |
+
+Login endpointlari o'z credential'i bilan himoyalangan: Telegram imzosi yoki parol.
+
+## Telegram'ning ikki xil imzosi
+
+Telegram **ikki xil algoritm** ishlatadi va ular bir-birining payload'ini qabul qilmaydi:
+
+| Sirt | Kalit | Funksiya |
+|---|---|---|
+| Mini App (`initData`) | `HMAC(bot_token, "WebAppData")` | `verify_init_data()` |
+| Login Widget (brauzer) | `SHA256(bot_token)` | `verify_login_widget()` |
+
+Ikkalasi alohida funksiyada saqlanadi — bir sirt uchun imzolangan payload ikkinchisida
+**hech qachon** o'tmaydi (test bilan qamrab olingan).
+
+Seller ikkala yo'l bilan ham kira oladi: brauzerda Login Widget, Telegram ichida Mini App.
+Replay himoyasi ikkalasi uchun ham mavjud nonce mexanizmi orqali ishlaydi.

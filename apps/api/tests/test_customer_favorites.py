@@ -147,7 +147,10 @@ async def test_favorites_pagination(
 
 async def test_favorites_require_customer_realm(client, seller_factory) -> None:
     ctx = await seller_factory("sellerfav", 8810)
-    response = await client.get("/api/v1/customer/favorites", cookies=ctx["cookies"])
+    response = await client.get("/api/v1/customer/favorites", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert response.status_code == 403
 
 

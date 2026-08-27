@@ -24,6 +24,18 @@ class TelegramUser:
     username: str | None
 
 
+def _check_auth_date(raw_auth_date: str | None, max_age_seconds: int) -> int:
+    if not raw_auth_date or not str(raw_auth_date).isdigit():
+        raise TelegramAuthError("payload has no valid auth_date")
+    auth_date = int(raw_auth_date)
+    age = int(time.time()) - auth_date
+    if age > max_age_seconds:
+        raise TelegramAuthError("payload has expired")
+    if age < -max_age_seconds:
+        raise TelegramAuthError("payload auth_date is in the future")
+    return auth_date
+
+
 @dataclass(frozen=True)
 class VerifiedInitData:
     user: TelegramUser
@@ -31,8 +43,18 @@ class VerifiedInitData:
     hash: str
 
 
-def _secret_key(bot_token: str) -> bytes:
+def _webapp_secret_key(bot_token: str) -> bytes:
+    """Mini App key derivation: HMAC of the token under the literal "WebAppData"."""
     return hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+
+
+def _login_widget_secret_key(bot_token: str) -> bytes:
+    """Login Widget key derivation: a plain SHA-256 of the token.
+
+    Telegram uses two different schemes. Keeping them in separate functions means a
+    payload signed for one surface can never validate against the other.
+    """
+    return hashlib.sha256(bot_token.encode()).digest()
 
 
 def verify_init_data(init_data: str, bot_token: str, max_age_seconds: int) -> VerifiedInitData:
@@ -48,7 +70,7 @@ def verify_init_data(init_data: str, bot_token: str, max_age_seconds: int) -> Ve
 
     data_check_string = "\n".join(f"{key}={pairs[key]}" for key in sorted(pairs))
     expected_hash = hmac.new(
-        _secret_key(bot_token), data_check_string.encode(), hashlib.sha256
+        _webapp_secret_key(bot_token), data_check_string.encode(), hashlib.sha256
     ).hexdigest()
 
     if not hmac.compare_digest(expected_hash, received_hash):
@@ -79,6 +101,48 @@ def verify_init_data(init_data: str, bot_token: str, max_age_seconds: int) -> Ve
             first_name=parsed.get("first_name"),
             last_name=parsed.get("last_name"),
             username=parsed.get("username"),
+        ),
+        auth_date=auth_date,
+        hash=received_hash,
+    )
+
+
+def verify_login_widget(
+    payload: dict[str, str], bot_token: str, max_age_seconds: int
+) -> VerifiedInitData:
+    """Verifies a Telegram Login Widget callback (browser sign-in).
+
+    The widget posts flat fields plus a hash; the signature covers every field except the
+    hash itself, so tampering with the id or name invalidates it.
+    """
+    if not bot_token:
+        raise TelegramAuthError("bot token is not configured")
+
+    fields = {k: str(v) for k, v in payload.items() if v is not None}
+    received_hash = fields.pop("hash", None)
+    if not received_hash:
+        raise TelegramAuthError("payload has no hash")
+
+    data_check_string = "\n".join(f"{key}={fields[key]}" for key in sorted(fields))
+    expected_hash = hmac.new(
+        _login_widget_secret_key(bot_token), data_check_string.encode(), hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_hash, received_hash):
+        raise TelegramAuthError("payload signature mismatch")
+
+    auth_date = _check_auth_date(fields.get("auth_date"), max_age_seconds)
+
+    raw_id = fields.get("id")
+    if not raw_id or not raw_id.isdigit():
+        raise TelegramAuthError("payload has no valid user id")
+
+    return VerifiedInitData(
+        user=TelegramUser(
+            telegram_id=int(raw_id),
+            first_name=fields.get("first_name"),
+            last_name=fields.get("last_name"),
+            username=fields.get("username"),
         ),
         auth_date=auth_date,
         hash=received_hash,

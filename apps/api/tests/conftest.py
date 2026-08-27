@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123456:TEST-TOKEN")
 # Secure cookies are not transmitted over the plain-http test transport.
 os.environ.setdefault("COOKIE_SECURE", "false")
+os.environ.setdefault("COOKIE_SAMESITE", "lax")
+os.environ.setdefault("CSRF_SECRET", "test-csrf-secret")
 
 from app.core.config import get_settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
@@ -74,7 +76,10 @@ async def seller_factory(client, db):
             json={"init_data": build_init_data(telegram_id=telegram_id)},
         )
         assert login.status_code == 200, login.text
-        return {"shop": shop, "user": user, "cookies": dict(login.cookies)}
+        cookies = dict(login.cookies)
+        # Browser clients echo the readable CSRF cookie back in a header; tests do the same.
+        headers = {"X-CSRF-Token": cookies.get("mp_csrf", "")}
+        return {"shop": shop, "user": user, "cookies": cookies, "headers": headers}
 
     return make
 

@@ -195,7 +195,10 @@ async def test_customer_api_requires_authentication(client, public_shop_factory)
 async def test_seller_session_cannot_use_customer_api(client, seller_factory) -> None:
     """Realms stay separate: a seller cookie is not a customer credential."""
     ctx = await seller_factory("sellerrealm", 8802)
-    response = await client.get("/api/v1/customer/shops", cookies=ctx["cookies"])
+    response = await client.get("/api/v1/customer/shops", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert response.status_code == 403
 
 

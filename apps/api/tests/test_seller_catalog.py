@@ -4,18 +4,27 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
+def _csrf(cookies: dict) -> dict:
+    """Mirrors the browser: read the readable CSRF cookie and echo it in the header."""
+    return {"X-CSRF-Token": cookies.get("mp_csrf", "")}
+
+
+
 async def _create_category(client, cookies, name: str, parent_id: int | None = None):
     return await client.post(
         "/api/v1/seller/categories",
         json={"name": name, "parent_id": parent_id},
         cookies=cookies,
+        headers=_csrf(cookies),
     )
 
 
 async def _create_product(client, cookies, **overrides):
     payload = {"name": "iPhone 15", "price": "1000.00", "stock": 5}
     payload.update(overrides)
-    return await client.post("/api/v1/seller/products", json=payload, cookies=cookies)
+    return await client.post(
+        "/api/v1/seller/products", json=payload, cookies=cookies, headers=_csrf(cookies)
+    )
 
 
 # --- categories -----------------------------------------------------------
@@ -27,16 +36,25 @@ async def test_category_crud(client, seller_factory) -> None:
     assert created.json()["slug"] == "electronics"
     cid = created.json()["id"]
 
-    read = await client.get(f"/api/v1/seller/categories/{cid}", cookies=ctx["cookies"])
+    read = await client.get(f"/api/v1/seller/categories/{cid}", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert read.status_code == 200
 
     patched = await client.patch(
-        f"/api/v1/seller/categories/{cid}", json={"name": "Gadgets"}, cookies=ctx["cookies"]
+        f"/api/v1/seller/categories/{cid}", json={"name": "Gadgets"}, 
+            cookies=ctx["cookies"],
+            headers=ctx["headers"],
+        
     )
     assert patched.status_code == 200
     assert patched.json()["slug"] == "gadgets"
 
-    deleted = await client.delete(f"/api/v1/seller/categories/{cid}", cookies=ctx["cookies"])
+    deleted = await client.delete(f"/api/v1/seller/categories/{cid}", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert deleted.status_code == 204
 
 
@@ -68,15 +86,24 @@ async def test_cross_tenant_category_access_blocked(client, seller_factory) -> N
     b_cat_id = (await _create_category(client, ctx_b["cookies"], "Books")).json()["id"]
 
     assert (
-        await client.get(f"/api/v1/seller/categories/{b_cat_id}", cookies=ctx_a["cookies"])
-    ).status_code == 404
-    assert (
-        await client.patch(
-            f"/api/v1/seller/categories/{b_cat_id}", json={"name": "X"}, cookies=ctx_a["cookies"]
+        await client.get(f"/api/v1/seller/categories/{b_cat_id}", 
+            cookies=ctx_a["cookies"],
+            headers=ctx_a["headers"],
         )
     ).status_code == 404
     assert (
-        await client.delete(f"/api/v1/seller/categories/{b_cat_id}", cookies=ctx_a["cookies"])
+        await client.patch(
+            f"/api/v1/seller/categories/{b_cat_id}", json={"name": "X"}, 
+                cookies=ctx_a["cookies"],
+                headers=ctx_a["headers"],
+            
+        )
+    ).status_code == 404
+    assert (
+        await client.delete(f"/api/v1/seller/categories/{b_cat_id}", 
+            cookies=ctx_a["cookies"],
+            headers=ctx_a["headers"],
+        )
     ).status_code == 404
 
 
@@ -85,7 +112,10 @@ async def test_category_with_products_cannot_be_deleted(client, seller_factory) 
     cid = (await _create_category(client, ctx["cookies"], "Phones")).json()["id"]
     await _create_product(client, ctx["cookies"], category_id=cid)
 
-    response = await client.delete(f"/api/v1/seller/categories/{cid}", cookies=ctx["cookies"])
+    response = await client.delete(f"/api/v1/seller/categories/{cid}", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert response.status_code == 409
 
 
@@ -95,7 +125,7 @@ async def test_category_with_children_cannot_be_deleted(client, seller_factory) 
     await _create_category(client, ctx["cookies"], "Phones", parent_id=parent_id)
 
     response = await client.delete(
-        f"/api/v1/seller/categories/{parent_id}", cookies=ctx["cookies"]
+        f"/api/v1/seller/categories/{parent_id}", cookies=ctx["cookies"], headers=ctx["headers"]
     )
     assert response.status_code == 409
 
@@ -109,16 +139,25 @@ async def test_product_crud(client, seller_factory) -> None:
     pid = created.json()["id"]
     assert created.json()["slug"] == "iphone-15"
 
-    read = await client.get(f"/api/v1/seller/products/{pid}", cookies=ctx["cookies"])
+    read = await client.get(f"/api/v1/seller/products/{pid}", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert read.status_code == 200
 
     patched = await client.patch(
-        f"/api/v1/seller/products/{pid}", json={"stock": 12}, cookies=ctx["cookies"]
+        f"/api/v1/seller/products/{pid}", json={"stock": 12}, 
+            cookies=ctx["cookies"],
+            headers=ctx["headers"],
+        
     )
     assert patched.status_code == 200
     assert patched.json()["stock"] == 12
 
-    deleted = await client.delete(f"/api/v1/seller/products/{pid}", cookies=ctx["cookies"])
+    deleted = await client.delete(f"/api/v1/seller/products/{pid}", 
+        cookies=ctx["cookies"],
+        headers=ctx["headers"],
+    )
     assert deleted.status_code == 204
 
 
@@ -190,15 +229,24 @@ async def test_cross_tenant_product_blocked(client, seller_factory) -> None:
     b_pid = (await _create_product(client, ctx_b["cookies"])).json()["id"]
 
     assert (
-        await client.get(f"/api/v1/seller/products/{b_pid}", cookies=ctx_a["cookies"])
-    ).status_code == 404
-    assert (
-        await client.patch(
-            f"/api/v1/seller/products/{b_pid}", json={"stock": 1}, cookies=ctx_a["cookies"]
+        await client.get(f"/api/v1/seller/products/{b_pid}", 
+            cookies=ctx_a["cookies"],
+            headers=ctx_a["headers"],
         )
     ).status_code == 404
     assert (
-        await client.delete(f"/api/v1/seller/products/{b_pid}", cookies=ctx_a["cookies"])
+        await client.patch(
+            f"/api/v1/seller/products/{b_pid}", json={"stock": 1}, 
+                cookies=ctx_a["cookies"],
+                headers=ctx_a["headers"],
+            
+        )
+    ).status_code == 404
+    assert (
+        await client.delete(f"/api/v1/seller/products/{b_pid}", 
+            cookies=ctx_a["cookies"],
+            headers=ctx_a["headers"],
+        )
     ).status_code == 404
 
 
@@ -208,6 +256,9 @@ async def test_product_list_is_shop_scoped(client, seller_factory) -> None:
     await _create_product(client, ctx_a["cookies"], name="A item")
     await _create_product(client, ctx_b["cookies"], name="B item")
 
-    listing = await client.get("/api/v1/seller/products", cookies=ctx_a["cookies"])
+    listing = await client.get("/api/v1/seller/products", 
+        cookies=ctx_a["cookies"],
+        headers=ctx_a["headers"],
+    )
     names = [item["name"] for item in listing.json()["items"]]
     assert names == ["A item"]

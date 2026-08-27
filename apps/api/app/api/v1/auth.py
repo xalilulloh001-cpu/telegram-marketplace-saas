@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession as DbSession
 
 from app.core.config import get_settings
+from app.core.cookies import clear_session_cookies, set_session_cookies
 from app.core.deps import get_session
 from app.core.rbac import ROLE_PERMISSIONS
 from app.core.security import SESSION_COOKIE_NAME
@@ -16,17 +17,57 @@ from app.models.identity import User
 from app.schemas.auth import (
     CurrentUserResponse,
     CustomerAuthResponse,
+    SellerAuthRequest,
     SellerAuthResponse,
     ShopSummary,
     TelegramAuthRequest,
 )
 from app.services import identity_service, session_service
-from app.services.telegram_auth import TelegramAuthError, verify_init_data
+from app.services.telegram_auth import (
+    TelegramAuthError,
+    verify_init_data,
+    verify_login_widget,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
 
 _INVALID = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid telegram login")
+
+
+async def _consume_nonce(fingerprint: str, db: DbSession) -> None:
+    fresh = await session_service.consume_telegram_nonce(
+        db, fingerprint, settings.telegram_auth_max_age_seconds
+    )
+    if not fresh:
+        raise _INVALID
+
+
+async def _verify_seller_credential(payload: SellerAuthRequest, db: DbSession):
+    """Routes the credential to the matching verifier — the two Telegram signature
+    schemes are never interchangeable."""
+    try:
+        if payload.login_widget is not None:
+            verified = verify_login_widget(
+                payload.login_widget,
+                settings.telegram_bot_token or "",
+                settings.telegram_auth_max_age_seconds,
+            )
+            fingerprint = hashlib.sha256(
+                f"widget:{verified.hash}".encode()
+            ).hexdigest()
+        else:
+            verified = verify_init_data(
+                str(payload.init_data),
+                settings.telegram_bot_token or "",
+                settings.telegram_auth_max_age_seconds,
+            )
+            fingerprint = hashlib.sha256(str(payload.init_data).encode()).hexdigest()
+    except TelegramAuthError as exc:
+        raise _INVALID from exc
+
+    await _consume_nonce(fingerprint, db)
+    return verified
 
 
 async def _verify(init_data: str, db: DbSession):
@@ -71,13 +112,13 @@ async def telegram_customer_login(
 
 @router.post("/telegram/seller", response_model=SellerAuthResponse)
 async def telegram_seller_login(
-    payload: TelegramAuthRequest,
+    payload: SellerAuthRequest,
     request: Request,
     response: Response,
     db: Annotated[DbSession, Depends(get_db)],
 ) -> SellerAuthResponse:
     """The client may name a shop, but membership decides — an unmatched shop_id is refused."""
-    verified = await _verify(payload.init_data, db)
+    verified = await _verify_seller_credential(payload, db)
     user = await identity_service.get_or_create_user(db, verified.user)
     memberships = await identity_service.list_shop_memberships(db, user.id)
     available = [
@@ -102,7 +143,7 @@ async def telegram_seller_login(
         shop_id=selected.shop_id if selected else None,
         user_agent=request.headers.get("user-agent"),
     )
-    _set_session_cookie(response, SESSION_COOKIE_NAME, token)
+    set_session_cookies(response, SESSION_COOKIE_NAME, token)
     chosen = (
         ShopSummary(
             id=selected.shop.id,
@@ -156,17 +197,4 @@ async def logout(
         token = header[7:].strip()
     if token:
         await session_service.revoke_session(db, token)
-    response.delete_cookie(SESSION_COOKIE_NAME, path="/")
-
-
-def _set_session_cookie(response: Response, name: str, token: str) -> None:
-    response.set_cookie(
-        key=name,
-        value=token,
-        max_age=settings.session_ttl_seconds,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        domain=settings.cookie_domain,
-        path="/",
-    )
+    clear_session_cookies(response, SESSION_COOKIE_NAME)

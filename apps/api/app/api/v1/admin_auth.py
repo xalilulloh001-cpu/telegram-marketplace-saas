@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession as DbSession
 
 from app.core.config import get_settings
+from app.core.cookies import clear_session_cookies, set_session_cookies
 from app.core.deps import get_current_platform_admin
 from app.core.security import ADMIN_SESSION_COOKIE_NAME, verify_password
 from app.db.session import get_db
@@ -67,16 +68,7 @@ async def login(
         platform_admin_id=admin.id,
         user_agent=request.headers.get("user-agent"),
     )
-    response.set_cookie(
-        key=ADMIN_SESSION_COOKIE_NAME,
-        value=token,
-        max_age=settings.session_ttl_seconds,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        domain=settings.cookie_domain,
-        path="/",
-    )
+    set_session_cookies(response, ADMIN_SESSION_COOKIE_NAME, token)
     return AdminResponse(id=admin.id, email=admin.email)
 
 
@@ -96,4 +88,4 @@ async def logout(
     token = request.cookies.get(ADMIN_SESSION_COOKIE_NAME)
     if token:
         await session_service.revoke_session(db, token)
-    response.delete_cookie(ADMIN_SESSION_COOKIE_NAME, path="/")
+    clear_session_cookies(response, ADMIN_SESSION_COOKIE_NAME)

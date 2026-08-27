@@ -4,7 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.csrf import csrf_middleware
 
+# Instantiating Settings validates the configuration; a production deployment without
+# CSRF_SECRET fails here rather than serving requests with weak CSRF protection.
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
@@ -16,6 +19,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.middleware("http")(csrf_middleware)
 
 app.include_router(api_router)
 

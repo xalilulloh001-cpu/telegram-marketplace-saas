@@ -271,7 +271,7 @@ async def test_cart_requires_customer_realm(client, seller_factory, public_shop_
     shop = await public_shop_factory("xrealm", 8927)
     ctx = await seller_factory("sellercart", 8928)
     response = await client.get(
-        f"/api/v1/customer/shops/{shop.id}/cart", cookies=ctx["cookies"]
+        f"/api/v1/customer/shops/{shop.id}/cart", cookies=ctx["cookies"], headers=ctx["headers"]
     )
     assert response.status_code == 403
 
